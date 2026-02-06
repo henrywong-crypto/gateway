@@ -1,6 +1,7 @@
 use aws_sdk_bedrockruntime::types::TokenUsage;
 use sqlx::PgPool;
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::{error, info};
 use usage::{CreateUsageRequest, create_usage};
 
@@ -21,8 +22,14 @@ pub fn create_usage_callback(
         };
 
         tokio::spawn(async move {
-            if let Err(e) = create_usage(&pool, &create_usage_request).await {
-                error!("Failed to create usage: {}", e);
+            // Add timeout to prevent hanging indefinitely on database operations
+            match tokio::time::timeout(
+                Duration::from_secs(10),
+                create_usage(&pool, &create_usage_request)
+            ).await {
+                Ok(Ok(_)) => {},
+                Ok(Err(e)) => error!("Failed to create usage: {}", e),
+                Err(_) => error!("Usage tracking timed out after 10 seconds"),
             }
         });
     }
