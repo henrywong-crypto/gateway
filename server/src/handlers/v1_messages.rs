@@ -76,7 +76,7 @@ pub async fn v1_messages(
                         Some(arn)
                     }
                     Err(e) => {
-                        error!("Failed to create inference profile: {}", e);
+                        error!("Failed to create inference profile for model '{}': {:?}", payload.model, e);
                         None
                     }
                 }

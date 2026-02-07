@@ -80,7 +80,7 @@ pub async fn chat_completions(
                         Some(arn)
                     }
                     Err(e) => {
-                        error!("Failed to create inference profile: {}", e);
+                        error!("Failed to create inference profile for model '{}': {:?}", payload.model, e);
                         None
                     }
                 }
