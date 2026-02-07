@@ -7,6 +7,7 @@ use myerrors::AppError;
 use myhandlers::AppState;
 use time::OffsetDateTime;
 use tower_sessions::Session;
+use tracing::error;
 
 use crate::templates::common::{common_styles, nav_menu};
 
@@ -39,7 +40,10 @@ pub async fn inference_profile_costs_get(
         now.day()
     );
 
-    let costs = get_inference_profile_costs(&arns, &start_date, &end_date).await?;
+    let costs = get_inference_profile_costs(&arns, &start_date, &end_date).await.map_err(|e| {
+        error!("Failed to fetch inference profile costs: {:?}", e);
+        e
+    })?;
 
     let mut rows = String::new();
     for profile in &profiles {
