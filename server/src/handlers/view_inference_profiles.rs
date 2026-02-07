@@ -30,7 +30,7 @@ pub async fn view_inference_profiles(
                 <td>{}</td>
             </tr>"#,
             profile.inference_profile_name,
-            profile.model_name,
+            profile.model_arn,
             profile.inference_profile_arn,
             profile.created_at
         ));

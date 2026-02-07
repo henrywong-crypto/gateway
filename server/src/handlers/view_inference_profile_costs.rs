@@ -70,7 +70,7 @@ pub async fn view_inference_profile_costs(
                 <td>{}</td>
                 <td>${:.4}</td>
             </tr>"#,
-            profile.inference_profile_name, profile.model_name, cost
+            profile.inference_profile_name, profile.model_arn, cost
         ));
     }
 
