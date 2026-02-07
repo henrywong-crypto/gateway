@@ -27,7 +27,6 @@ use crate::handlers::{
     add_model::{add_model_get, add_model_post},
     browse_models::{browse_models_get, browse_models_post},
     chat_completions::chat_completions,
-    create_inference_profile::{create_inference_profile_get, create_inference_profile_post},
     disable_api_keys::{disable_api_keys_get, disable_api_keys_post},
     generate_api_key::{generate_api_key_get, generate_api_key_post},
     index::index,
@@ -139,10 +138,6 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/login", get(login))
         .route("/logout", get(logout))
-        .route(
-            "/create-inference-profile",
-            get(create_inference_profile_get).post(create_inference_profile_post),
-        )
         .route("/view-inference-profiles", get(view_inference_profiles))
         .route(
             "/view-inference-profile-costs",

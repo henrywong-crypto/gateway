@@ -10,7 +10,7 @@ use axum::{
 };
 use chat::bedrock::ReasoningEffortToThinkingBudgetTokens;
 use chat::provider::{BedrockChatCompletionsProvider, ChatCompletionsProvider};
-use inference_profiles::get_inference_profile_arn;
+use inference_profiles::{create_inference_profile, create_inference_profile_record};
 use myerrors::AppError;
 use myhandlers::AppState;
 use request::ChatCompletionsRequest;
@@ -37,17 +37,17 @@ pub async fn chat_completions(
 
     payload.model = payload.model.to_lowercase();
 
-    let (api_key_exists, model_exists) =
+    let validation =
         check_api_key_exists_and_model_exists(&state.db_pool, &api_key, &payload.model).await?;
 
-    if !api_key_exists {
+    if !validation.api_key_exists {
         error!("API key validation failed: Invalid API key");
         return Err(AppError::from(anyhow::anyhow!(
             "Invalid or missing API key"
         )));
     }
 
-    if !model_exists {
+    if !validation.model_exists {
         error!("Model name validation failed: Invalid model name");
         return Err(AppError::from(anyhow::anyhow!(
             "Invalid or missing model name"
@@ -61,9 +61,36 @@ pub async fn chat_completions(
         )));
     }
 
-    if let Ok(Some(arn)) =
-        get_inference_profile_arn(&state.db_pool, &api_key, &payload.model).await
-    {
+    let arn = match validation.inference_profile_arn {
+        Some(arn) => Some(arn),
+        None => {
+            if let Some(ref user_email) = validation.user_email {
+                let profile_name = format!("{}-{}", user_email, payload.model);
+                let tags = vec![("user_email".to_string(), user_email.clone())];
+                match create_inference_profile(&payload.model, &profile_name, tags).await {
+                    Ok(arn) => {
+                        let _ = create_inference_profile_record(
+                            &state.db_pool,
+                            user_email,
+                            &payload.model,
+                            &arn,
+                            &profile_name,
+                        )
+                        .await;
+                        Some(arn)
+                    }
+                    Err(e) => {
+                        error!("Failed to create inference profile: {}", e);
+                        None
+                    }
+                }
+            } else {
+                None
+            }
+        }
+    };
+
+    if let Some(arn) = arn {
         debug!(
             "Using inference profile ARN: {} for model: {}",
             arn, payload.model

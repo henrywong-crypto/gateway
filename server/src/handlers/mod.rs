@@ -1,7 +1,6 @@
 pub mod add_model;
 pub mod browse_models;
 pub mod chat_completions;
-pub mod create_inference_profile;
 pub mod disable_api_keys;
 pub mod generate_api_key;
 pub mod index;

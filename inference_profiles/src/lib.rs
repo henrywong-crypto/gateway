@@ -172,27 +172,3 @@ pub async fn get_inference_profiles_count(pool: &PgPool, user_email: &str) -> Re
 
     Ok(count)
 }
-
-pub async fn get_inference_profile_arn(
-    pool: &PgPool,
-    api_key: &str,
-    model_name: &str,
-) -> Result<Option<String>> {
-    let arn = sqlx::query_scalar!(
-        r#"
-        SELECT ip.inference_profile_arn
-        FROM inference_profiles ip
-        JOIN api_keys ak ON ip.user_id = ak.user_id
-        JOIN models m ON ip.model_id = m.model_id
-        WHERE ak.api_key = $1
-          AND ak.is_disabled = false
-          AND m.model_name = $2
-        "#,
-        api_key.to_lowercase(),
-        model_name.to_lowercase()
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    Ok(arn)
-}
