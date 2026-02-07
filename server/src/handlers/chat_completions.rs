@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use anyhow::Context;
 use apikeys::get_api_key;
 use axum::{
@@ -8,9 +10,11 @@ use axum::{
 };
 use chat::bedrock::ReasoningEffortToThinkingBudgetTokens;
 use chat::provider::{BedrockChatCompletionsProvider, ChatCompletionsProvider};
+use inference_profiles::get_inference_profile_arn;
 use myerrors::AppError;
 use myhandlers::AppState;
 use request::ChatCompletionsRequest;
+use tokio_stream::StreamExt as _;
 use tracing::{debug, error};
 
 use crate::validation::check_api_key_exists_and_model_exists;
@@ -57,11 +61,17 @@ pub async fn chat_completions(
         )));
     }
 
-    let usage_callback = create_usage_callback(
-        state.db_pool.clone(),
-        api_key.clone(),
-        payload.model.clone(),
-    );
+    if let Ok(Some(arn)) =
+        get_inference_profile_arn(&state.db_pool, &api_key, &payload.model).await
+    {
+        debug!(
+            "Using inference profile ARN: {} for model: {}",
+            arn, payload.model
+        );
+        payload.model = arn;
+    }
+
+    let usage_callback = create_usage_callback();
 
     let reasoning_effort_to_thinking_budget_tokens =
         ReasoningEffortToThinkingBudgetTokens::default();
@@ -74,6 +84,11 @@ pub async fn chat_completions(
             usage_callback,
         )
         .await?;
+
+    let stream = stream.timeout(Duration::from_secs(30)).map(|item| match item {
+        Ok(inner) => inner,
+        Err(_elapsed) => Err(anyhow::anyhow!("Stream item timed out")),
+    });
 
     Ok((StatusCode::OK, Sse::new(stream)))
 }

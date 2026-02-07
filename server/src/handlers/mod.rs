@@ -1,13 +1,13 @@
 pub mod add_model;
 pub mod browse_models;
 pub mod chat_completions;
-pub mod clear_usage_history;
+pub mod create_inference_profile;
 pub mod disable_api_keys;
 pub mod generate_api_key;
 pub mod index;
 pub mod models;
-pub mod update_usage_tracking;
 pub mod usage_callback;
 pub mod v1_messages;
 pub mod v1_messages_count_tokens;
-pub mod view_usage_history;
+pub mod view_inference_profile_costs;
+pub mod view_inference_profiles;

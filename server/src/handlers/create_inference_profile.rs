@@ -3,7 +3,8 @@ use axum::{
     response::{Html, IntoResponse, Redirect, Response},
 };
 use axum_csrf::CsrfToken;
-use models::{delete_model, get_models};
+use inference_profiles::{create_inference_profile, create_inference_profile_record};
+use models::get_models;
 use myerrors::AppError;
 use myhandlers::AppState;
 use serde::Deserialize;
@@ -13,12 +14,12 @@ use crate::csrf::{get_authenticity_token, verify_authenticity_token};
 use crate::templates::common::{common_styles, nav_menu};
 
 #[derive(Deserialize)]
-pub struct DeleteModelForm {
+pub struct CreateInferenceProfileForm {
     pub authenticity_token: String,
     pub model_name: String,
 }
 
-pub async fn browse_models_get(
+pub async fn create_inference_profile_get(
     token: CsrfToken,
     session: Session,
     state: State<AppState>,
@@ -32,29 +33,11 @@ pub async fn browse_models_get(
 
     let models = get_models(&state.db_pool).await?;
 
-    let mut rows = String::new();
+    let mut options = String::new();
     for model in models {
-        let action_cell = if model.protected {
-            "<td></td>".to_string()
-        } else {
-            format!(
-                r#"<td>
-                    <form action="/browse-models" method="post">
-                        <input type="hidden" name="authenticity_token" value="{}">
-                        <input type="hidden" name="model_name" value="{}">
-                        <button type="submit">Delete</button>
-                    </form>
-                </td>"#,
-                authenticity_token, model.model_name
-            )
-        };
-
-        rows.push_str(&format!(
-            r#"<tr>
-                <td>{}</td>
-                {}
-            </tr>"#,
-            model.model_name, action_cell
+        options.push_str(&format!(
+            r#"<option value="{}">{}</option>"#,
+            model.model_name, model.model_name
         ));
     }
 
@@ -67,45 +50,57 @@ pub async fn browse_models_get(
         </head>
         <body>
             <div>
-                <h1>Browse Models</h1>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Model</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows}
-                    </tbody>
-                </table>
+                <h1>Create Inference Profile</h1>
+                <form action="/create-inference-profile" method="post">
+                    <input type="hidden" name="authenticity_token" value="{}">
+                    <label for="model_name">Model:</label><br>
+                    <select id="model_name" name="model_name" required>
+                        {}
+                    </select><br><br>
+                    <button type="submit">Create Inference Profile</button>
+                </form>
                 {}
             </div>
         </body>
         </html>
         "#,
         common_styles(),
+        authenticity_token,
+        options,
         nav_menu()
     );
 
     Ok((token, Html(html)).into_response())
 }
 
-pub async fn browse_models_post(
+pub async fn create_inference_profile_post(
     token: CsrfToken,
     session: Session,
     state: State<AppState>,
-    form: Form<DeleteModelForm>,
+    form: Form<CreateInferenceProfileForm>,
 ) -> Result<Response, AppError> {
-    let _email = match session.get::<String>("email").await? {
+    let email = match session.get::<String>("email").await? {
         Some(email) => email,
         None => return Ok(Redirect::to("/login").into_response()),
     };
 
     verify_authenticity_token(&token, &session, &form.authenticity_token).await?;
 
-    match delete_model(&state.db_pool, &form.model_name).await {
-        Ok(_) => {
+    let profile_name = format!("{}-{}", email, form.model_name);
+
+    let tags = vec![("user_email".to_string(), email.clone())];
+
+    match create_inference_profile(&form.model_name, &profile_name, tags).await {
+        Ok(arn) => {
+            create_inference_profile_record(
+                &state.db_pool,
+                &email,
+                &form.model_name,
+                &arn,
+                &profile_name,
+            )
+            .await?;
+
             let html = format!(
                 r#"
                 <!DOCTYPE html>
@@ -115,29 +110,31 @@ pub async fn browse_models_post(
                 </head>
                 <body>
                     <div>
-                        <h1>Model Deleted</h1>
-                        <p>Model "{}" has been deleted successfully.</p>
+                        <h1>Inference Profile Created</h1>
+                        <p>Profile "{}" has been created successfully.</p>
+                        <p>ARN: {}</p>
                         {}
                     </div>
                 </body>
                 </html>
                 "#,
                 common_styles(),
-                form.model_name,
+                profile_name,
+                arn,
                 nav_menu()
             );
-            Ok(Html(html).into_response())
+            Ok((token, Html(html)).into_response())
         }
         Err(e) => {
-            let error_message = if e.to_string().contains("foreign key constraint")
-                || e.to_string().contains("violates foreign key")
+            let error_message = if e.to_string().contains("unique constraint")
+                || e.to_string().contains("already exists")
             {
                 format!(
-                    "Cannot delete model \"{}\". It is still referenced by inference profiles.",
+                    "An inference profile for model \"{}\" already exists.",
                     form.model_name
                 )
             } else {
-                format!("Failed to delete model: {}", e)
+                format!("Failed to create inference profile: {}", e)
             };
 
             let html = format!(
@@ -160,7 +157,7 @@ pub async fn browse_models_post(
                 error_message,
                 nav_menu()
             );
-            Ok(Html(html).into_response())
+            Ok((token, Html(html)).into_response())
         }
     }
 }

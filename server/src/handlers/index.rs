@@ -3,10 +3,10 @@ use axum::{
     extract::State,
     response::{Html, IntoResponse, Response},
 };
+use inference_profiles::get_inference_profiles_count;
 use myerrors::AppError;
 use myhandlers::AppState;
 use tower_sessions::Session;
-use usage::get_usage_count_and_usage_total_tokens;
 use users::create_user;
 
 use crate::templates::common::{common_styles, nav_menu};
@@ -16,10 +16,10 @@ pub async fn index(session: Session, state: State<AppState>) -> Result<Response,
 
     let html = match email {
         Some(ref email) => {
-            let (usage_count, usage_total_tokens) =
-                get_usage_count_and_usage_total_tokens(&state.db_pool, email)
+            let inference_profiles_count =
+                get_inference_profiles_count(&state.db_pool, email)
                     .await
-                    .unwrap_or((0, 0));
+                    .unwrap_or(0);
 
             let (api_keys_count, api_keys_count_active) =
                 get_api_keys_count_and_api_keys_count_active(&state.db_pool, email)
@@ -38,8 +38,8 @@ pub async fn index(session: Session, state: State<AppState>) -> Result<Response,
                         <h1>Welcome, {email}!</h1>
                         <table>
                             <tr>
-                                <th>Total usage</th>
-                                <td>{} requests ({} tokens)</td>
+                                <th>Inference profiles</th>
+                                <td>{}</td>
                             </tr>
                             <tr>
                                 <th>API keys</th>
@@ -52,8 +52,7 @@ pub async fn index(session: Session, state: State<AppState>) -> Result<Response,
                 </html>
                 "#,
                 common_styles(),
-                usage_count,
-                usage_total_tokens,
+                inference_profiles_count,
                 api_keys_count_active,
                 api_keys_count,
                 nav_menu()

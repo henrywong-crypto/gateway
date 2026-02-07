@@ -2,14 +2,14 @@ use axum::{
     extract::State,
     response::{Html, IntoResponse, Redirect, Response},
 };
+use inference_profiles::get_inference_profiles;
 use myerrors::AppError;
 use myhandlers::AppState;
 use tower_sessions::Session;
-use usage::get_usage_records;
 
 use crate::templates::common::{common_styles, nav_menu};
 
-pub async fn view_usage_history(
+pub async fn view_inference_profiles(
     session: Session,
     state: State<AppState>,
 ) -> Result<Response, AppError> {
@@ -18,17 +18,21 @@ pub async fn view_usage_history(
         None => return Ok(Redirect::to("/login").into_response()),
     };
 
-    let usage_records = get_usage_records(&state.db_pool, &email, 100).await?;
+    let profiles = get_inference_profiles(&state.db_pool, &email).await?;
 
     let mut rows = String::new();
-    for usage_record in usage_records {
+    for profile in profiles {
         rows.push_str(&format!(
             r#"<tr>
                 <td>{}</td>
                 <td>{}</td>
                 <td>{}</td>
+                <td>{}</td>
             </tr>"#,
-            usage_record.model_name, usage_record.total_tokens, usage_record.created_at
+            profile.inference_profile_name,
+            profile.model_name,
+            profile.inference_profile_arn,
+            profile.created_at
         ));
     }
 
@@ -41,13 +45,14 @@ pub async fn view_usage_history(
         </head>
         <body>
             <div>
-                <h1>View Last 100 Usage Records for {email}</h1>
+                <h1>Inference Profiles for {email}</h1>
                 <table>
                     <thead>
                         <tr>
+                            <th>Profile Name</th>
                             <th>Model</th>
-                            <th>Total Tokens</th>
-                            <th>Date</th>
+                            <th>ARN</th>
+                            <th>Created</th>
                         </tr>
                     </thead>
                     <tbody>

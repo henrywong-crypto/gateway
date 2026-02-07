@@ -27,15 +27,15 @@ use crate::handlers::{
     add_model::{add_model_get, add_model_post},
     browse_models::{browse_models_get, browse_models_post},
     chat_completions::chat_completions,
-    clear_usage_history::{clear_usage_history_get, clear_usage_history_post},
+    create_inference_profile::{create_inference_profile_get, create_inference_profile_post},
     disable_api_keys::{disable_api_keys_get, disable_api_keys_post},
     generate_api_key::{generate_api_key_get, generate_api_key_post},
     index::index,
     models::models,
-    update_usage_tracking::{update_usage_tracking_get, update_usage_tracking_post},
     v1_messages::v1_messages,
     v1_messages_count_tokens::v1_messages_count_tokens,
-    view_usage_history::view_usage_history,
+    view_inference_profile_costs::view_inference_profile_costs,
+    view_inference_profiles::view_inference_profiles,
 };
 
 #[tokio::main]
@@ -139,14 +139,14 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/login", get(login))
         .route("/logout", get(logout))
-        .route("/view-usage-history", get(view_usage_history))
         .route(
-            "/update-usage-tracking",
-            get(update_usage_tracking_get).post(update_usage_tracking_post),
+            "/create-inference-profile",
+            get(create_inference_profile_get).post(create_inference_profile_post),
         )
+        .route("/view-inference-profiles", get(view_inference_profiles))
         .route(
-            "/clear-usage-history",
-            get(clear_usage_history_get).post(clear_usage_history_post),
+            "/view-inference-profile-costs",
+            get(view_inference_profile_costs),
         )
         .merge(api)
         .layer(CsrfLayer::new(csrf_config))

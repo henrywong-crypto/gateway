@@ -32,9 +32,9 @@ pub fn nav_menu() -> &'static str {
         <a href="/">Home</a>
         <a href="/generate-api-key">Generate API Key</a>
         <a href="/disable-api-keys">Disable API Keys</a>
-        <a href="/view-usage-history">View Usage History</a>
-        <a href="/update-usage-tracking">Update Usage Tracking</a>
-        <a href="/clear-usage-history">Clear Usage History</a>
+        <a href="/create-inference-profile">Create Inference Profile</a>
+        <a href="/view-inference-profiles">View Inference Profiles</a>
+        <a href="/view-inference-profile-costs">View Inference Profile Costs</a>
         <a href="/browse-models">Browse Models</a>
         <a href="/add-model">Add Model</a>
         <a href="/logout">Logout</a>
