@@ -31,17 +31,17 @@ pub async fn v1_messages_count_tokens(
 
     payload.model = payload.model.to_lowercase();
 
-    let (api_key_exists, model_exists) =
+    let validation =
         check_api_key_exists_and_model_exists(&state.db_pool, &api_key, &payload.model).await?;
 
-    if !api_key_exists {
+    if !validation.api_key_exists {
         error!("API key validation failed: Invalid API key");
         return Err(AppError::from(anyhow::anyhow!(
             "Invalid or missing API key"
         )));
     }
 
-    if !model_exists {
+    if !validation.model_exists {
         error!("Model name validation failed: Invalid model name");
         return Err(AppError::from(anyhow::anyhow!(
             "Invalid or missing model name"
