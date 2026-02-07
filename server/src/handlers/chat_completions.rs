@@ -65,7 +65,7 @@ pub async fn chat_completions(
         Some(arn) => Some(arn),
         None => {
             if let Some(ref user_email) = validation.user_email {
-                let profile_name = format!("{}-{}", user_email, payload.model);
+                let profile_name = uuid::Uuid::new_v4().to_string();
                 let tags = vec![("user_email".to_string(), user_email.clone())];
                 match create_inference_profile(&payload.model, &profile_name, tags).await {
                     Ok(arn) => {
