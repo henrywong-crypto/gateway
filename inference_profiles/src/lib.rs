@@ -65,54 +65,6 @@ pub async fn create_inference_profile(
     Ok(arn)
 }
 
-pub async fn get_inference_profile_costs(
-    inference_profile_arns: &[String],
-    start_date: &str,
-    end_date: &str,
-) -> Result<Vec<(String, f64)>> {
-    let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-    let client = aws_sdk_costexplorer::Client::new(&config);
-
-    let mut costs = Vec::new();
-
-    for arn in inference_profile_arns {
-        let response = client
-            .get_cost_and_usage()
-            .time_period(
-                aws_sdk_costexplorer::types::DateInterval::builder()
-                    .start(start_date)
-                    .end(end_date)
-                    .build()
-                    .map_err(|e| anyhow::anyhow!("Failed to build date interval: {}", e))?,
-            )
-            .granularity(aws_sdk_costexplorer::types::Granularity::Monthly)
-            .metrics("UnblendedCost")
-            .filter(
-                aws_sdk_costexplorer::types::Expression::builder()
-                    .tags(
-                        aws_sdk_costexplorer::types::TagValues::builder()
-                            .key("InferenceProfileArn")
-                            .values(arn)
-                            .build(),
-                    )
-                    .build(),
-            )
-            .send()
-            .await?;
-
-        let total: f64 = response
-            .results_by_time()
-            .iter()
-            .filter_map(|r| r.total().and_then(|t| t.get("UnblendedCost")))
-            .filter_map(|m| m.amount().and_then(|a| a.parse::<f64>().ok()))
-            .sum();
-
-        costs.push((arn.clone(), total));
-    }
-
-    Ok(costs)
-}
-
 pub async fn create_inference_profile_record(
     pool: &PgPool,
     user_email: &str,

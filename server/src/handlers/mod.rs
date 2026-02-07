@@ -4,7 +4,6 @@ pub mod chat_completions;
 pub mod disable_api_keys;
 pub mod generate_api_key;
 pub mod index;
-pub mod inference_profile_costs;
 pub mod models;
 pub mod usage_callback;
 pub mod v1_messages;
