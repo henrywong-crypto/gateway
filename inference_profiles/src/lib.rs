@@ -42,7 +42,7 @@ pub async fn create_inference_profile(
     }
 
     let response = request.send().await.map_err(|e| {
-        tracing::error!("Failed to create inference profile '{}': {}", profile_name, e);
+        tracing::error!("Failed to create inference profile '{}': {:?}", profile_name, e);
         e
     })?;
 
