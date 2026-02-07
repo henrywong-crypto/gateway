@@ -23,20 +23,11 @@ pub async fn create_inference_profile(
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let client = aws_sdk_bedrock::Client::new(&config);
 
-    let model_arn = format!(
-        "arn:aws:bedrock:{}::foundation-model/{}",
-        config
-            .region()
-            .map(|r| r.as_ref())
-            .unwrap_or("us-east-1"),
-        model_id
-    );
-
     let mut request = client
         .create_inference_profile()
         .inference_profile_name(profile_name)
         .model_source(
-            aws_sdk_bedrock::types::InferenceProfileModelSource::CopyFrom(model_arn),
+            aws_sdk_bedrock::types::InferenceProfileModelSource::CopyFrom(model_id.to_string()),
         );
 
     for (key, value) in &tags {
