@@ -10,7 +10,7 @@ use tracing::info;
 pub struct InferenceProfile {
     pub inference_profile_name: String,
     pub inference_profile_arn: String,
-    pub model_name: String,
+    pub model_arn: String,
     #[serde_as(as = "Rfc3339")]
     pub created_at: OffsetDateTime,
 }
@@ -100,7 +100,7 @@ pub async fn get_inference_profile_costs(
 pub async fn create_inference_profile_record(
     pool: &PgPool,
     user_email: &str,
-    model_name: &str,
+    model_arn: &str,
     inference_profile_arn: &str,
     inference_profile_name: &str,
 ) -> Result<()> {
@@ -109,10 +109,10 @@ pub async fn create_inference_profile_record(
         INSERT INTO inference_profiles (user_id, model_id, inference_profile_arn, inference_profile_name)
         SELECT u.user_id, m.model_id, $3, $4
         FROM users u, models m
-        WHERE u.email = $1 AND m.model_name = $2
+        WHERE u.email = $1 AND m.model_arn = $2
         "#,
         user_email.to_lowercase(),
-        model_name.to_lowercase(),
+        model_arn.to_lowercase(),
         inference_profile_arn,
         inference_profile_name,
     )
@@ -132,7 +132,7 @@ pub async fn get_inference_profiles(
         SELECT
             ip.inference_profile_name,
             ip.inference_profile_arn,
-            m.model_name,
+            m.model_arn,
             ip.created_at
         FROM inference_profiles ip
         JOIN models m ON ip.model_id = m.model_id

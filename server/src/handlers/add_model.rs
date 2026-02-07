@@ -14,7 +14,7 @@ use crate::templates::common::{common_styles, nav_menu};
 #[derive(Deserialize)]
 pub struct AddModelForm {
     pub authenticity_token: String,
-    pub model_name: String,
+    pub model_arn: String,
 }
 
 pub async fn add_model_get(token: CsrfToken, session: Session) -> Result<Response, AppError> {
@@ -37,8 +37,8 @@ pub async fn add_model_get(token: CsrfToken, session: Session) -> Result<Respons
                 <h1>Add Model</h1>
                 <form action="/add-model" method="post">
                     <input type="hidden" name="authenticity_token" value="{}">
-                    <label for="model_name">Model Name:</label><br>
-                    <input type="text" id="model_name" name="model_name" required><br><br>
+                    <label for="model_arn">Model ARN:</label><br>
+                    <input type="text" id="model_arn" name="model_arn" required><br><br>
                     <button type="submit">Add Model</button>
                 </form>
                 {}
@@ -67,7 +67,7 @@ pub async fn add_model_post(
 
     verify_authenticity_token(&token, &session, &form.authenticity_token).await?;
 
-    match models::create_model(&state.db_pool, &form.model_name).await {
+    match models::create_model(&state.db_pool, &form.model_arn).await {
         Ok(_) => {
             let html = format!(
                 r#"
@@ -86,7 +86,7 @@ pub async fn add_model_post(
                 </html>
                 "#,
                 common_styles(),
-                form.model_name,
+                form.model_arn,
                 nav_menu()
             );
             Ok(Html(html).into_response())
@@ -95,7 +95,7 @@ pub async fn add_model_post(
             let error_message = if e.to_string().contains("duplicate key")
                 || e.to_string().contains("unique constraint")
             {
-                format!("Model \"{}\" already exists.", form.model_name)
+                format!("Model \"{}\" already exists.", form.model_arn)
             } else {
                 format!("Failed to add model: {}", e)
             };

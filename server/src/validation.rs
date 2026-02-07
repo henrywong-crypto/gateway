@@ -10,19 +10,19 @@ pub struct ValidationResult {
 pub async fn check_api_key_exists_and_model_exists(
     pool: &PgPool,
     api_key: &str,
-    model_name: &str,
+    model_arn: &str,
 ) -> anyhow::Result<ValidationResult> {
     let result = sqlx::query!(
         r#"
         SELECT
             EXISTS (SELECT 1 FROM api_keys WHERE api_key = $1 AND is_disabled = FALSE) as "api_key_exists!",
-            EXISTS (SELECT 1 FROM models WHERE model_name = $2) as "model_exists!",
+            EXISTS (SELECT 1 FROM models WHERE model_arn = $2) as "model_exists!",
             (
                 SELECT ip.inference_profile_arn
                 FROM inference_profiles ip
                 JOIN api_keys ak ON ip.user_id = ak.user_id
                 JOIN models m ON ip.model_id = m.model_id
-                WHERE ak.api_key = $1 AND ak.is_disabled = false AND m.model_name = $2
+                WHERE ak.api_key = $1 AND ak.is_disabled = false AND m.model_arn = $2
             ) as inference_profile_arn,
             (
                 SELECT u.email
@@ -32,7 +32,7 @@ pub async fn check_api_key_exists_and_model_exists(
             ) as user_email
         "#,
         api_key.to_lowercase(),
-        model_name.to_lowercase()
+        model_arn.to_lowercase()
     )
     .fetch_one(pool)
     .await?;

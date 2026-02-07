@@ -3,7 +3,7 @@ use sqlx::PgPool;
 
 #[derive(Deserialize)]
 pub struct Model {
-    pub model_name: String,
+    pub model_arn: String,
     pub protected: bool,
 }
 
@@ -26,10 +26,10 @@ pub async fn get_models(pool: &PgPool) -> anyhow::Result<Vec<Model>> {
         Model,
         r#"
         SELECT
-            model_name,
+            model_arn,
             protected
         FROM models
-        ORDER BY model_name
+        ORDER BY model_arn
         "#
     )
     .fetch_all(pool)
@@ -38,13 +38,13 @@ pub async fn get_models(pool: &PgPool) -> anyhow::Result<Vec<Model>> {
     Ok(models)
 }
 
-pub async fn create_model(pool: &PgPool, model_name: &str) -> anyhow::Result<()> {
+pub async fn create_model(pool: &PgPool, model_arn: &str) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
-        INSERT INTO models (model_name)
+        INSERT INTO models (model_arn)
         VALUES ($1)
         "#,
-        model_name.to_lowercase()
+        model_arn.to_lowercase()
     )
     .execute(pool)
     .await?;
@@ -52,13 +52,13 @@ pub async fn create_model(pool: &PgPool, model_name: &str) -> anyhow::Result<()>
     Ok(())
 }
 
-pub async fn delete_model(pool: &PgPool, model_name: &str) -> anyhow::Result<()> {
+pub async fn delete_model(pool: &PgPool, model_arn: &str) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
         DELETE FROM models
-        WHERE model_name = $1 AND protected = false
+        WHERE model_arn = $1 AND protected = false
         "#,
-        model_name.to_lowercase()
+        model_arn.to_lowercase()
     )
     .execute(pool)
     .await?;
@@ -71,7 +71,7 @@ pub fn to_models_response(models: &[Model]) -> ModelsResponse {
         .iter()
         .map(|model| Data {
             created: 0,
-            id: model.model_name.clone(),
+            id: model.model_arn.clone(),
             object: "model".to_string(),
             owned_by: "".to_string(),
         })

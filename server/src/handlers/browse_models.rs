@@ -15,7 +15,7 @@ use crate::templates::common::{common_styles, nav_menu};
 #[derive(Deserialize)]
 pub struct DeleteModelForm {
     pub authenticity_token: String,
-    pub model_name: String,
+    pub model_arn: String,
 }
 
 pub async fn browse_models_get(
@@ -41,11 +41,11 @@ pub async fn browse_models_get(
                 r#"<td>
                     <form action="/browse-models" method="post">
                         <input type="hidden" name="authenticity_token" value="{}">
-                        <input type="hidden" name="model_name" value="{}">
+                        <input type="hidden" name="model_arn" value="{}">
                         <button type="submit">Delete</button>
                     </form>
                 </td>"#,
-                authenticity_token, model.model_name
+                authenticity_token, model.model_arn
             )
         };
 
@@ -54,7 +54,7 @@ pub async fn browse_models_get(
                 <td>{}</td>
                 {}
             </tr>"#,
-            model.model_name, action_cell
+            model.model_arn, action_cell
         ));
     }
 
@@ -104,7 +104,7 @@ pub async fn browse_models_post(
 
     verify_authenticity_token(&token, &session, &form.authenticity_token).await?;
 
-    match delete_model(&state.db_pool, &form.model_name).await {
+    match delete_model(&state.db_pool, &form.model_arn).await {
         Ok(_) => {
             let html = format!(
                 r#"
@@ -123,7 +123,7 @@ pub async fn browse_models_post(
                 </html>
                 "#,
                 common_styles(),
-                form.model_name,
+                form.model_arn,
                 nav_menu()
             );
             Ok(Html(html).into_response())
@@ -134,7 +134,7 @@ pub async fn browse_models_post(
             {
                 format!(
                     "Cannot delete model \"{}\". It is still referenced by inference profiles.",
-                    form.model_name
+                    form.model_arn
                 )
             } else {
                 format!("Failed to delete model: {}", e)
