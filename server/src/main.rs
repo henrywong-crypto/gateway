@@ -30,6 +30,7 @@ use crate::handlers::{
     disable_api_keys::{disable_api_keys_get, disable_api_keys_post},
     generate_api_key::{generate_api_key_get, generate_api_key_post},
     index::index,
+    inference_profile_costs::inference_profile_costs_get,
     models::models,
     v1_messages::v1_messages,
     v1_messages_count_tokens::v1_messages_count_tokens,
@@ -136,6 +137,7 @@ async fn main() -> anyhow::Result<()> {
             "/generate-api-key",
             get(generate_api_key_get).post(generate_api_key_post),
         )
+        .route("/inference-profile-costs", get(inference_profile_costs_get))
         .route("/login", get(login))
         .route("/logout", get(logout))
         .merge(api)

@@ -34,6 +34,7 @@ pub fn nav_menu() -> &'static str {
         <a href="/disable-api-keys">Disable API Keys</a>
         <a href="/browse-models">Browse Models</a>
         <a href="/add-model">Add Model</a>
+        <a href="/inference-profile-costs">Costs</a>
         <a href="/logout">Logout</a>
     "#
 }
