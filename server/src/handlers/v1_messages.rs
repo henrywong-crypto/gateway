@@ -60,11 +60,7 @@ pub async fn v1_messages(
         )));
     }
 
-    let usage_callback = create_usage_callback(
-        state.db_pool.clone(),
-        api_key.clone(),
-        payload.model.clone(),
-    );
+    let usage_callback = create_usage_callback(payload.model.clone());
 
     let stream = BedrockV1MessagesProvider::new()
         .await
