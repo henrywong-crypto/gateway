@@ -20,15 +20,27 @@ pub async fn create_inference_profile(
     model_id: &str,
     profile_name: &str,
     tags: Vec<(String, String)>,
+    aws_region: &str,
+    aws_account_id: &str,
+    inference_profile_prefixes: &[String],
 ) -> Result<String> {
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let client = aws_sdk_bedrock::Client::new(&config);
+
+    let copy_from = if inference_profile_prefixes
+        .iter()
+        .any(|p| model_id.starts_with(p.as_str()))
+    {
+        format!("arn:aws:bedrock:{aws_region}:{aws_account_id}:inference-profile/{model_id}")
+    } else {
+        model_id.to_string()
+    };
 
     let mut request = client
         .create_inference_profile()
         .inference_profile_name(profile_name)
         .model_source(
-            aws_sdk_bedrock::types::InferenceProfileModelSource::CopyFrom(model_id.to_string()),
+            aws_sdk_bedrock::types::InferenceProfileModelSource::CopyFrom(copy_from),
         );
 
     for (key, value) in &tags {
@@ -172,6 +184,9 @@ pub async fn get_or_create_inference_profile(
     pool: &PgPool,
     api_key: &str,
     model_name: &str,
+    aws_region: &str,
+    aws_account_id: &str,
+    inference_profile_prefixes: &[String],
 ) -> Result<String> {
     let existing = sqlx::query_scalar!(
         r#"
@@ -192,7 +207,7 @@ pub async fn get_or_create_inference_profile(
     }
 
     let profile_name = Uuid::new_v4().to_string();
-    let arn = create_inference_profile(model_name, &profile_name, vec![]).await?;
+    let arn = create_inference_profile(model_name, &profile_name, vec![], aws_region, aws_account_id, inference_profile_prefixes).await?;
 
     sqlx::query!(
         r#"

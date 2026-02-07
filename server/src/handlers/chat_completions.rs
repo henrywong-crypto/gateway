@@ -61,6 +61,9 @@ pub async fn chat_completions(
         &state.db_pool,
         &api_key,
         &payload.model,
+        &state.aws_region,
+        &state.aws_account_id,
+        &state.inference_profile_prefixes,
     )
     .await?;
     payload.model = inference_profile_arn;
