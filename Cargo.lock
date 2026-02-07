@@ -1901,6 +1901,7 @@ dependencies = [
  "sqlx",
  "time",
  "tracing",
+ "uuid",
 ]
 
 [[package]]

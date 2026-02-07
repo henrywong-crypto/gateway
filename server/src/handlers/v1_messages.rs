@@ -60,6 +60,14 @@ pub async fn v1_messages(
         )));
     }
 
+    let inference_profile_arn = inference_profiles::get_or_create_inference_profile(
+        &state.db_pool,
+        &api_key,
+        &payload.model,
+    )
+    .await?;
+    payload.model = inference_profile_arn;
+
     let usage_callback = create_usage_callback(payload.model.clone());
 
     let stream = BedrockV1MessagesProvider::new()
