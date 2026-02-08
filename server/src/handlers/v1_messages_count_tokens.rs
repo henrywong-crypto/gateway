@@ -31,7 +31,7 @@ pub async fn v1_messages_count_tokens(
 
     payload.model = payload.model.to_lowercase();
 
-    let (api_key_exists, model_exists, _) =
+    let (api_key_exists, model_exists) =
         check_api_key_exists_and_model_exists(&state.db_pool, &api_key, &payload.model).await?;
 
     if !api_key_exists {

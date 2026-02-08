@@ -13,7 +13,7 @@ use myhandlers::AppState;
 use request::ChatCompletionsRequest;
 use tracing::{debug, error};
 
-use crate::validation::check_api_key_exists_and_model_exists;
+use crate::validation::check_api_key_exists_and_model_exists_with_inference_profile;
 
 use super::usage_callback::create_usage_callback;
 
@@ -34,7 +34,7 @@ pub async fn chat_completions(
     payload.model = payload.model.to_lowercase();
 
     let (api_key_exists, model_exists, existing_inference_profile_arn) =
-        check_api_key_exists_and_model_exists(&state.db_pool, &api_key, &payload.model).await?;
+        check_api_key_exists_and_model_exists_with_inference_profile(&state.db_pool, &api_key, &payload.model).await?;
 
     if !api_key_exists {
         error!("API key validation failed: Invalid API key");
