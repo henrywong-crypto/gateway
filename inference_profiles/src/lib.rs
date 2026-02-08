@@ -40,7 +40,7 @@ pub async fn create_and_store_inference_profile(
 
     let arn = response.inference_profile_arn().to_string();
 
-    let insert_result = sqlx::query!(
+    sqlx::query!(
         r#"
         INSERT INTO inference_profiles (user_id, model_id, inference_profile_arn, inference_profile_name)
         SELECT ak.user_id, m.model_id, $3, $4
@@ -53,20 +53,7 @@ pub async fn create_and_store_inference_profile(
         &profile_name,
     )
     .execute(pool)
-    .await;
-
-    if let Err(e) = insert_result {
-        error!("Failed to store inference profile record, deleting AWS profile: {}", e);
-        if let Err(delete_err) = client
-            .delete_inference_profile()
-            .inference_profile_identifier(&arn)
-            .send()
-            .await
-        {
-            error!("Failed to delete orphaned inference profile '{}': {:?}", arn, delete_err);
-        }
-        return Err(e.into());
-    }
+    .await?;
 
     info!(
         "Created and stored inference profile: {} (ARN: {})",
