@@ -36,7 +36,7 @@ pub async fn v1_messages(
 
     payload.model = payload.model.to_lowercase();
 
-    let (api_key_exists, model_exists) =
+    let (api_key_exists, model_exists, existing_inference_profile_arn) =
         check_api_key_exists_and_model_exists(&state.db_pool, &api_key, &payload.model).await?;
 
     if !api_key_exists {
@@ -60,15 +60,20 @@ pub async fn v1_messages(
         )));
     }
 
-    let inference_profile_arn = inference_profiles::get_or_create_inference_profile(
-        &state.db_pool,
-        &api_key,
-        &payload.model,
-        &state.aws_region,
-        &state.aws_account_id,
-        &state.inference_profile_prefixes,
-    )
-    .await?;
+    let inference_profile_arn = match existing_inference_profile_arn {
+        Some(arn) => arn,
+        None => {
+            inference_profiles::create_and_store_inference_profile(
+                &state.db_pool,
+                &api_key,
+                &payload.model,
+                &state.aws_region,
+                &state.aws_account_id,
+                &state.inference_profile_prefixes,
+            )
+            .await?
+        }
+    };
     payload.model = inference_profile_arn;
 
     let usage_callback = create_usage_callback(payload.model.clone());
