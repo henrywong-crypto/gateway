@@ -31,8 +31,6 @@ pub async fn chat_completions(
         .await
         .context("Missing API key (provide Authorization: Bearer <key> or x-api-key header)")?;
 
-    payload.model = payload.model.to_lowercase();
-
     let (api_key_exists, model_exists, existing_inference_profile_arn) =
         check_api_key_exists_and_model_exists_with_inference_profile(&state.db_pool, &api_key, &payload.model).await?;
 

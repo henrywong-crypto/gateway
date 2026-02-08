@@ -60,8 +60,8 @@ pub async fn create_and_store_inference_profile(
         FROM api_keys ak, models m
         WHERE ak.api_key = $1 AND m.model_name = $2
         "#,
-        api_key,
-        model_name,
+        api_key.to_lowercase(),
+        model_name.to_lowercase(),
         &arn,
         &profile_name,
     )
