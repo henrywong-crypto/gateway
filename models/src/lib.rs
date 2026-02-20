@@ -22,7 +22,7 @@ pub struct ModelsResponse {
     pub object: String,
 }
 
-pub async fn get_enabled_models(pool: &PgPool) -> anyhow::Result<Vec<Model>> {
+pub async fn get_browsable_models(pool: &PgPool) -> anyhow::Result<Vec<Model>> {
     let models = sqlx::query_as!(
         Model,
         r#"
@@ -31,7 +31,7 @@ pub async fn get_enabled_models(pool: &PgPool) -> anyhow::Result<Vec<Model>> {
             protected,
             is_disabled
         FROM models
-        WHERE is_disabled = FALSE
+        WHERE NOT (protected = TRUE AND is_disabled = TRUE)
         ORDER BY model_name
         "#
     )

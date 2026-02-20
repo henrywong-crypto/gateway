@@ -27,7 +27,7 @@ use crate::database::setup_database;
 #[allow(unused_imports)]
 use crate::handlers::{
     add_model::{add_model_get, add_model_post},
-    browse_models::{browse_models_get, browse_models_post},
+    browse_models::{browse_models_get, disable_model_post, enable_model_post},
     chat_completions::chat_completions,
     delete_model::delete_model_post,
     disable_api_keys::{disable_api_keys_get, disable_api_keys_post},
@@ -132,10 +132,9 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/", get(index))
         .route("/add-model", get(add_model_get).post(add_model_post))
-        .route(
-            "/browse-models",
-            get(browse_models_get).post(browse_models_post),
-        )
+        .route("/browse-models", get(browse_models_get))
+        .route("/disable-model", post(disable_model_post))
+        .route("/enable-model", post(enable_model_post))
         .route("/delete-model", post(delete_model_post))
         .route("/callback", get(callback))
         .route(

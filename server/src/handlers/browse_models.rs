@@ -3,7 +3,7 @@ use axum::{
     response::{Html, IntoResponse, Redirect, Response},
 };
 use axum_csrf::CsrfToken;
-use models::get_enabled_models;
+use models::get_browsable_models;
 use myerrors::AppError;
 use myhandlers::AppState;
 use serde::Deserialize;
@@ -13,10 +13,9 @@ use crate::csrf::{get_authenticity_token, verify_authenticity_token};
 use crate::templates::common::{common_styles, nav_menu};
 
 #[derive(Deserialize)]
-pub struct ToggleModelForm {
+pub struct ModelActionForm {
     pub authenticity_token: String,
     pub model_name: String,
-    pub action: String,
 }
 
 pub async fn browse_models_get(
@@ -31,7 +30,7 @@ pub async fn browse_models_get(
 
     let authenticity_token = get_authenticity_token(&token, &session).await?;
 
-    let models = get_enabled_models(&state.db_pool).await?;
+    let models = get_browsable_models(&state.db_pool).await?;
 
     let mut rows = String::new();
     for model in models {
@@ -39,12 +38,21 @@ pub async fn browse_models_get(
 
         let action_cell = if model.protected {
             "<td></td>".to_string()
-        } else {
-            let toggle_button = format!(
-                r#"<form action="/browse-models" method="post" style="display:inline">
+        } else if model.is_disabled {
+            let enable_button = format!(
+                r#"<form action="/enable-model" method="post" style="display:inline">
                         <input type="hidden" name="authenticity_token" value="{}">
                         <input type="hidden" name="model_name" value="{}">
-                        <input type="hidden" name="action" value="disable">
+                        <button type="submit">Enable</button>
+                    </form>"#,
+                authenticity_token, model.model_name
+            );
+            format!("<td>{}</td>", enable_button)
+        } else {
+            let disable_button = format!(
+                r#"<form action="/disable-model" method="post" style="display:inline">
+                        <input type="hidden" name="authenticity_token" value="{}">
+                        <input type="hidden" name="model_name" value="{}">
                         <button type="submit">Disable</button>
                     </form>"#,
                 authenticity_token, model.model_name
@@ -58,7 +66,7 @@ pub async fn browse_models_get(
                     </form>"#,
                 authenticity_token, model.model_name
             );
-            format!("<td>{} {}</td>", toggle_button, delete_button)
+            format!("<td>{} {}</td>", disable_button, delete_button)
         };
 
         rows.push_str(&format!(
@@ -103,11 +111,11 @@ pub async fn browse_models_get(
     Ok((token, Html(html)).into_response())
 }
 
-pub async fn browse_models_post(
+pub async fn disable_model_post(
     token: CsrfToken,
     session: Session,
     state: State<AppState>,
-    form: Form<ToggleModelForm>,
+    form: Form<ModelActionForm>,
 ) -> Result<Response, AppError> {
     let _email = match session.get::<String>("email").await? {
         Some(email) => email,
@@ -130,75 +138,97 @@ pub async fn browse_models_post(
         )));
     }
 
-    match form.action.as_str() {
-        "disable" => {
-            sqlx::query!(
-                r#"
-                UPDATE models
-                SET is_disabled = TRUE, updated_at = now()
-                WHERE model_name = $1
-                "#,
-                form.model_name.to_lowercase()
-            )
-            .execute(&*state.db_pool)
-            .await?;
+    sqlx::query!(
+        r#"
+        UPDATE models
+        SET is_disabled = TRUE, updated_at = now()
+        WHERE model_name = $1
+        "#,
+        form.model_name.to_lowercase()
+    )
+    .execute(&*state.db_pool)
+    .await?;
 
-            let html = format!(
-                r#"
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    {}
-                </head>
-                <body>
-                    <div>
-                        <h1>Model Disabled</h1>
-                        <p>Model "{}" has been disabled.</p>
-                        {}
-                    </div>
-                </body>
-                </html>
-                "#,
-                common_styles(),
-                form.model_name,
-                nav_menu()
-            );
-            Ok(Html(html).into_response())
-        }
-        "enable" => {
-            sqlx::query!(
-                r#"
-                UPDATE models
-                SET is_disabled = FALSE, updated_at = now()
-                WHERE model_name = $1
-                "#,
-                form.model_name.to_lowercase()
-            )
-            .execute(&*state.db_pool)
-            .await?;
+    let html = format!(
+        r#"
+        <!DOCTYPE html>
+        <html>
+        <head>
+            {}
+        </head>
+        <body>
+            <div>
+                <h1>Model Disabled</h1>
+                <p>Model "{}" has been disabled.</p>
+                {}
+            </div>
+        </body>
+        </html>
+        "#,
+        common_styles(),
+        form.model_name,
+        nav_menu()
+    );
+    Ok((token, Html(html)).into_response())
+}
 
-            let html = format!(
-                r#"
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    {}
-                </head>
-                <body>
-                    <div>
-                        <h1>Model Enabled</h1>
-                        <p>Model "{}" has been enabled.</p>
-                        {}
-                    </div>
-                </body>
-                </html>
-                "#,
-                common_styles(),
-                form.model_name,
-                nav_menu()
-            );
-            Ok(Html(html).into_response())
-        }
-        _ => Err(AppError::from(anyhow::anyhow!("Invalid action"))),
+pub async fn enable_model_post(
+    token: CsrfToken,
+    session: Session,
+    state: State<AppState>,
+    form: Form<ModelActionForm>,
+) -> Result<Response, AppError> {
+    let _email = match session.get::<String>("email").await? {
+        Some(email) => email,
+        None => return Ok(Redirect::to("/login").into_response()),
+    };
+
+    verify_authenticity_token(&token, &session, &form.authenticity_token).await?;
+
+    let is_protected = sqlx::query_scalar!(
+        r#"SELECT protected FROM models WHERE model_name = $1"#,
+        form.model_name.to_lowercase()
+    )
+    .fetch_optional(&*state.db_pool)
+    .await?
+    .unwrap_or(false);
+
+    if is_protected {
+        return Err(AppError::from(anyhow::anyhow!(
+            "Cannot enable a protected model"
+        )));
     }
+
+    sqlx::query!(
+        r#"
+        UPDATE models
+        SET is_disabled = FALSE, updated_at = now()
+        WHERE model_name = $1
+        "#,
+        form.model_name.to_lowercase()
+    )
+    .execute(&*state.db_pool)
+    .await?;
+
+    let html = format!(
+        r#"
+        <!DOCTYPE html>
+        <html>
+        <head>
+            {}
+        </head>
+        <body>
+            <div>
+                <h1>Model Enabled</h1>
+                <p>Model "{}" has been enabled.</p>
+                {}
+            </div>
+        </body>
+        </html>
+        "#,
+        common_styles(),
+        form.model_name,
+        nav_menu()
+    );
+    Ok((token, Html(html)).into_response())
 }
