@@ -40,6 +40,21 @@ pub async fn get_models(pool: &PgPool) -> anyhow::Result<Vec<Model>> {
     Ok(models)
 }
 
+pub async fn get_enabled_model_names(pool: &PgPool) -> anyhow::Result<Vec<String>> {
+    let names = sqlx::query_scalar!(
+        r#"
+        SELECT model_name
+        FROM models
+        WHERE is_disabled = FALSE
+        ORDER BY model_name
+        "#
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(names)
+}
+
 pub async fn create_model(pool: &PgPool, model_name: &str) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
@@ -68,13 +83,12 @@ pub async fn delete_model(pool: &PgPool, model_name: &str) -> anyhow::Result<()>
     Ok(())
 }
 
-pub fn to_models_response(models: &[Model]) -> ModelsResponse {
-    let data = models
+pub fn to_models_response(model_names: &[String]) -> ModelsResponse {
+    let data = model_names
         .iter()
-        .filter(|model| !model.is_disabled)
-        .map(|model| Data {
+        .map(|name| Data {
             created: 0,
-            id: model.model_name.clone(),
+            id: name.clone(),
             object: "model".to_string(),
             owned_by: "".to_string(),
         })
