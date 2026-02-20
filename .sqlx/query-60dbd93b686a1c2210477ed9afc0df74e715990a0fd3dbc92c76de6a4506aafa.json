@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n            model_name,\n            protected\n        FROM models\n        ORDER BY model_name\n        ",
+  "query": "\n        SELECT\n            model_name,\n            protected,\n            is_disabled\n        FROM models\n        ORDER BY model_name\n        ",
   "describe": {
     "columns": [
       {
@@ -12,6 +12,11 @@
         "ordinal": 1,
         "name": "protected",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_disabled",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -19,8 +24,9 @@
     },
     "nullable": [
       false,
+      false,
       false
     ]
   },
-  "hash": "8447e63956b4071f5b026de4b1c93edd0c3ab39833a2a60a9eda61149da310de"
+  "hash": "60dbd93b686a1c2210477ed9afc0df74e715990a0fd3dbc92c76de6a4506aafa"
 }

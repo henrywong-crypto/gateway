@@ -5,6 +5,7 @@ use sqlx::PgPool;
 pub struct Model {
     pub model_name: String,
     pub protected: bool,
+    pub is_disabled: bool,
 }
 
 #[derive(Serialize)]
@@ -27,7 +28,8 @@ pub async fn get_models(pool: &PgPool) -> anyhow::Result<Vec<Model>> {
         r#"
         SELECT
             model_name,
-            protected
+            protected,
+            is_disabled
         FROM models
         ORDER BY model_name
         "#
@@ -69,6 +71,7 @@ pub async fn delete_model(pool: &PgPool, model_name: &str) -> anyhow::Result<()>
 pub fn to_models_response(models: &[Model]) -> ModelsResponse {
     let data = models
         .iter()
+        .filter(|model| !model.is_disabled)
         .map(|model| Data {
             created: 0,
             id: model.model_name.clone(),
