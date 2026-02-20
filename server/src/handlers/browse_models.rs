@@ -47,7 +47,16 @@ pub async fn browse_models_get(
                     </form>"#,
                 authenticity_token, model.model_name
             );
-            format!("<td>{}</td>", enable_button)
+
+            let delete_button = format!(
+                r#"<form action="/delete-model" method="post" style="display:inline">
+                        <input type="hidden" name="authenticity_token" value="{}">
+                        <input type="hidden" name="model_name" value="{}">
+                        <button type="submit">Delete</button>
+                    </form>"#,
+                authenticity_token, model.model_name
+            );
+            format!("<td>{} {}</td>", enable_button, delete_button)
         } else {
             let disable_button = format!(
                 r#"<form action="/disable-model" method="post" style="display:inline">
