@@ -3,7 +3,7 @@ use axum::{
     response::{Html, IntoResponse, Redirect, Response},
 };
 use axum_csrf::CsrfToken;
-use models::{delete_model, get_models};
+use models::get_enabled_models;
 use myerrors::AppError;
 use myhandlers::AppState;
 use serde::Deserialize;
@@ -13,7 +13,7 @@ use crate::csrf::{get_authenticity_token, verify_authenticity_token};
 use crate::templates::common::{common_styles, nav_menu};
 
 #[derive(Deserialize)]
-pub struct ModelActionForm {
+pub struct ToggleModelForm {
     pub authenticity_token: String,
     pub model_name: String,
     pub action: String,
@@ -31,37 +31,29 @@ pub async fn browse_models_get(
 
     let authenticity_token = get_authenticity_token(&token, &session).await?;
 
-    let models = get_models(&state.db_pool).await?;
+    let models = get_enabled_models(&state.db_pool).await?;
 
     let mut rows = String::new();
     for model in models {
-        let name_cell = if model.is_disabled {
-            format!("<td>{} <em>(disabled)</em></td>", model.model_name)
-        } else {
-            format!("<td>{}</td>", model.model_name)
-        };
+        let name_cell = format!("<td>{}</td>", model.model_name);
 
         let action_cell = if model.protected {
             "<td></td>".to_string()
         } else {
-            let toggle_action = if model.is_disabled { "enable" } else { "disable" };
-            let toggle_label = if model.is_disabled { "Enable" } else { "Disable" };
-
             let toggle_button = format!(
                 r#"<form action="/browse-models" method="post" style="display:inline">
                         <input type="hidden" name="authenticity_token" value="{}">
                         <input type="hidden" name="model_name" value="{}">
-                        <input type="hidden" name="action" value="{}">
-                        <button type="submit">{}</button>
+                        <input type="hidden" name="action" value="disable">
+                        <button type="submit">Disable</button>
                     </form>"#,
-                authenticity_token, model.model_name, toggle_action, toggle_label
+                authenticity_token, model.model_name
             );
 
             let delete_button = format!(
-                r#"<form action="/browse-models" method="post" style="display:inline">
+                r#"<form action="/delete-model" method="post" style="display:inline">
                         <input type="hidden" name="authenticity_token" value="{}">
                         <input type="hidden" name="model_name" value="{}">
-                        <input type="hidden" name="action" value="delete">
                         <button type="submit">Delete</button>
                     </form>"#,
                 authenticity_token, model.model_name
@@ -115,7 +107,7 @@ pub async fn browse_models_post(
     token: CsrfToken,
     session: Session,
     state: State<AppState>,
-    form: Form<ModelActionForm>,
+    form: Form<ToggleModelForm>,
 ) -> Result<Response, AppError> {
     let _email = match session.get::<String>("email").await? {
         Some(email) => email,
@@ -124,86 +116,21 @@ pub async fn browse_models_post(
 
     verify_authenticity_token(&token, &session, &form.authenticity_token).await?;
 
-    match form.action.as_str() {
-        "disable" | "enable" => {
-            // Reject disable/enable on protected models
-            let is_protected = sqlx::query_scalar!(
-                r#"SELECT protected FROM models WHERE model_name = $1"#,
-                form.model_name.to_lowercase()
-            )
-            .fetch_optional(&*state.db_pool)
-            .await?
-            .unwrap_or(false);
+    let is_protected = sqlx::query_scalar!(
+        r#"SELECT protected FROM models WHERE model_name = $1"#,
+        form.model_name.to_lowercase()
+    )
+    .fetch_optional(&*state.db_pool)
+    .await?
+    .unwrap_or(false);
 
-            if is_protected {
-                return Err(AppError::from(anyhow::anyhow!(
-                    "Cannot disable a protected model"
-                )));
-            }
-        }
-        _ => {}
+    if is_protected {
+        return Err(AppError::from(anyhow::anyhow!(
+            "Cannot disable a protected model"
+        )));
     }
 
     match form.action.as_str() {
-        "delete" => match delete_model(&state.db_pool, &form.model_name).await {
-            Ok(_) => {
-                let html = format!(
-                    r#"
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        {}
-                    </head>
-                    <body>
-                        <div>
-                            <h1>Model Deleted</h1>
-                            <p>Model "{}" has been deleted successfully.</p>
-                            {}
-                        </div>
-                    </body>
-                    </html>
-                    "#,
-                    common_styles(),
-                    form.model_name,
-                    nav_menu()
-                );
-                Ok(Html(html).into_response())
-            }
-            Err(e) => {
-                let error_message = if e.to_string().contains("foreign key constraint")
-                    || e.to_string().contains("violates foreign key")
-                {
-                    format!(
-                        "Cannot delete model \"{}\". It is still referenced by usage records.",
-                        form.model_name
-                    )
-                } else {
-                    format!("Failed to delete model: {}", e)
-                };
-
-                let html = format!(
-                    r#"
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        {}
-                    </head>
-                    <body>
-                        <div>
-                            <h1>Error</h1>
-                            <p style="color: red;">{}</p>
-                            {}
-                        </div>
-                    </body>
-                    </html>
-                    "#,
-                    common_styles(),
-                    error_message,
-                    nav_menu()
-                );
-                Ok(Html(html).into_response())
-            }
-        },
         "disable" => {
             sqlx::query!(
                 r#"

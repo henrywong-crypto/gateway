@@ -1,6 +1,7 @@
 pub mod add_model;
 pub mod browse_models;
 pub mod chat_completions;
+pub mod delete_model;
 pub mod disable_api_keys;
 pub mod generate_api_key;
 pub mod health;
