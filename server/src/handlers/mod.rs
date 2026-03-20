@@ -1,4 +1,5 @@
 pub mod add_model;
+pub mod provision_api_key;
 pub mod browse_models;
 pub mod chat_completions;
 pub mod delete_model;

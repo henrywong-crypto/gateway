@@ -19,6 +19,7 @@ config = "0.15.21"
 dotenv = "0.15.0"
 futures = "0.3.32"
 http = "1.4.0"
+jsonwebtoken = "9.3.1"
 inference_profiles = { path = "../inference_profiles" }
 models = { path = "../models" }
 myerrors = { path = "../myerrors" }
@@ -26,7 +27,8 @@ myhandlers = { path = "../myhandlers" }
 request = { git = "https://github.com/llm-proxy-rs/llm-proxy-rs.git", version = "0.1.0" }
 reqwest = "0.13.2"
 response = { git = "https://github.com/llm-proxy-rs/llm-proxy-rs.git", version = "0.1.0" }
-serde = "1.0.228"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
 sqlx = { version = "0.8.6", features = ["postgres", "tls-rustls"] }
 time = "0.3.47"
 tokio = { version = "1.50.0", features = ["full"] }
