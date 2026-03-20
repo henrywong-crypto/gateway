@@ -1898,21 +1898,6 @@ dependencies = [
 
 [[package]]
 name = "jsonwebtoken"
-version = "9.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a87cc7a48537badeae96744432de36f4be2b4a34a05a5ef32e9dd8a1c169dde"
-dependencies = [
- "base64",
- "js-sys",
- "pem",
- "ring",
- "serde",
- "serde_json",
- "simple_asn1",
-]
-
-[[package]]
-name = "jsonwebtoken"
 version = "10.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0529410abe238729a60b108898784df8984c87f6054c9c4fcacc47e4803c1ce1"
@@ -1931,10 +1916,21 @@ dependencies = [
 [[package]]
 name = "jwks"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "jsonwebtoken",
+ "reqwest 0.13.2",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "jwks"
+version = "0.1.0"
 source = "git+https://github.com/llm-proxy-rs/cognito.git#4dfe4e3c4f51fdc6e287e67042216a265953ac70"
 dependencies = [
  "anyhow",
- "jsonwebtoken 10.3.0",
+ "jsonwebtoken",
  "reqwest 0.13.2",
  "serde",
  "serde_json",
@@ -1947,10 +1943,10 @@ source = "git+https://github.com/llm-proxy-rs/cognito.git#4dfe4e3c4f51fdc6e287e6
 dependencies = [
  "anyhow",
  "chrono",
- "jsonwebtoken 10.3.0",
- "jwks",
+ "jsonwebtoken",
+ "jwks 0.1.0 (git+https://github.com/llm-proxy-rs/cognito.git)",
  "serde",
- "validation",
+ "validation 0.1.0 (git+https://github.com/llm-proxy-rs/cognito.git)",
 ]
 
 [[package]]
@@ -3087,7 +3083,8 @@ dependencies = [
  "futures",
  "http 1.4.0",
  "inference_profiles",
- "jsonwebtoken 9.3.1",
+ "jsonwebtoken",
+ "jwks 0.1.0",
  "models",
  "myerrors",
  "myhandlers",
@@ -3105,6 +3102,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "users",
+ "validation 0.1.0",
 ]
 
 [[package]]
@@ -4046,10 +4044,18 @@ dependencies = [
 [[package]]
 name = "validation"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "jsonwebtoken",
+]
+
+[[package]]
+name = "validation"
+version = "0.1.0"
 source = "git+https://github.com/llm-proxy-rs/cognito.git#4dfe4e3c4f51fdc6e287e67042216a265953ac70"
 dependencies = [
  "anyhow",
- "jsonwebtoken 10.3.0",
+ "jsonwebtoken",
 ]
 
 [[package]]

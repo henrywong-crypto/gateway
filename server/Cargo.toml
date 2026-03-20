@@ -19,7 +19,9 @@ config = "0.15.21"
 dotenv = "0.15.0"
 futures = "0.3.32"
 http = "1.4.0"
-jsonwebtoken = "9.3.1"
+jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
+jwks = { path = "../../cognito/jwks" }
+validation = { path = "../../cognito/validation" }
 inference_profiles = { path = "../inference_profiles" }
 models = { path = "../models" }
 myerrors = { path = "../myerrors" }
