@@ -32,7 +32,7 @@ pub async fn v1_models(
     let model_infos: Vec<ModelInfo> = state
         .model_configs
         .iter()
-        .map(|model_config| model_config.to_model_info())
+        .map(ModelInfo::from)
         .collect();
 
     let models_response = ModelsResponse {

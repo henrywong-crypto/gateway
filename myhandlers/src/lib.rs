@@ -32,13 +32,13 @@ pub struct ModelConfig {
     pub max_tokens: u32,
 }
 
-impl ModelConfig {
-    pub fn to_model_info(&self) -> ModelInfo {
+impl From<&ModelConfig> for ModelInfo {
+    fn from(config: &ModelConfig) -> Self {
         ModelInfo {
-            id: self.anthropic_model_id.clone(),
-            display_name: self.anthropic_display_name.clone(),
-            max_input_tokens: self.max_input_tokens,
-            max_tokens: self.max_tokens,
+            id: config.anthropic_model_id.clone(),
+            display_name: config.anthropic_display_name.clone(),
+            max_input_tokens: config.max_input_tokens,
+            max_tokens: config.max_tokens,
             created_at: DateTime::UNIX_EPOCH,
             type_: "model".to_string(),
         }
@@ -160,7 +160,7 @@ mod tests {
             max_tokens: 64_000,
         };
 
-        let info = config.to_model_info();
+        let info = ModelInfo::from(&config);
 
         assert_eq!(info.id, "claude-sonnet-4-6");
         assert_eq!(info.max_input_tokens, 1_000_000);
